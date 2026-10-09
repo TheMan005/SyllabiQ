@@ -1,0 +1,6 @@
+{
+  "name": "SyllabiQ — Multi-Agent Question Paper & Curriculum Validator",
+  "description": "Multimodal Multi-Agent Academic Assessment System that ingests PDF, PPTX, JPEG, and PNG course materials to generate blueprint-aligned university examination papers and validate every question against syllabus and Course Learning Objectives.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
