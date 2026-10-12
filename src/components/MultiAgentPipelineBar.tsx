@@ -10,16 +10,21 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { AgentExecutionLog } from '../types/assessment';
-import { COURSE_PRESETS } from '../data/sampleCourses';
+import { CoursePreset } from '../data/sampleCourses';
 
 interface MultiAgentPipelineBarProps {
+  courses: CoursePreset[];
   logs: AgentExecutionLog[];
   isRunningPipeline: boolean;
   activeStepIndex: number | null;
   selectedPresetId: string;
   onSelectPreset: (presetId: string) => void;
+  onOpenCreateSubject: () => void;
+  onDeleteSubject?: (presetId: string) => void;
   onRunFullPipeline: () => void;
   onRunSingleAgent: (agentId: 'INGESTION' | 'BLUEPRINT' | 'GENERATOR' | 'VALIDATOR') => void;
   onNavigateTab: (tab: 'studio' | 'blueprint' | 'paper' | 'audit' | 'colab') => void;
@@ -31,10 +36,13 @@ interface MultiAgentPipelineBarProps {
 }
 
 export const MultiAgentPipelineBar: React.FC<MultiAgentPipelineBarProps> = ({
+  courses,
   logs,
   isRunningPipeline,
   selectedPresetId,
   onSelectPreset,
+  onOpenCreateSubject,
+  onDeleteSubject,
   onRunFullPipeline,
   onRunSingleAgent,
   onNavigateTab,
@@ -45,6 +53,8 @@ export const MultiAgentPipelineBar: React.FC<MultiAgentPipelineBarProps> = ({
   flaggedCount,
 }) => {
   const [showLogs, setShowLogs] = React.useState(false);
+
+  const isCustomSubject = selectedPresetId.startsWith('custom-');
 
   const agentConfig = [
     {
@@ -87,14 +97,14 @@ export const MultiAgentPipelineBar: React.FC<MultiAgentPipelineBarProps> = ({
   return (
     <section className="bg-white border-b border-slate-200 no-print">
       <div className="max-w-[1400px] mx-auto px-6 py-4">
-        {/* Top Row: Course Context Bar & Execution Controls */}
+        {/* Top Row: Subject Context Bar & Execution Controls */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <label
               htmlFor="course-preset-select"
               className="text-xs font-semibold text-slate-500 whitespace-nowrap shrink-0"
             >
-              Active Course Kit:
+              Active Subject:
             </label>
             <select
               id="course-preset-select"
@@ -103,22 +113,42 @@ export const MultiAgentPipelineBar: React.FC<MultiAgentPipelineBarProps> = ({
               disabled={isRunningPipeline}
               className="text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-700"
             >
-              {COURSE_PRESETS.map((preset) => (
+              {courses.map((preset) => (
                 <option key={preset.id} value={preset.id}>
                   {preset.label}
                 </option>
               ))}
             </select>
-            <span className="text-xs text-slate-500 hidden sm:inline">
-              · Multimodal Gemini 3.8 Flash + FastAPI Pipeline
-            </span>
+
+            <button
+              type="button"
+              onClick={onOpenCreateSubject}
+              disabled={isRunningPipeline}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Subject</span>
+            </button>
+
+            {isCustomSubject && onDeleteSubject && (
+              <button
+                type="button"
+                onClick={() => onDeleteSubject(selectedPresetId)}
+                disabled={isRunningPipeline}
+                title="Remove this custom subject"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Subject</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setShowLogs((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span>Agent Activity Log</span>
               {showLogs ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -167,7 +197,7 @@ export const MultiAgentPipelineBar: React.FC<MultiAgentPipelineBarProps> = ({
                   <button
                     type="button"
                     onClick={() => onNavigateTab(agent.targetTab)}
-                    className="text-left group focus:outline-none"
+                    className="text-left group focus:outline-none cursor-pointer"
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-mono-tabular font-semibold text-blue-900">

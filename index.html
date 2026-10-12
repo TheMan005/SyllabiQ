@@ -12,6 +12,45 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        var NativeWS = window.WebSocket;
+        if (!NativeWS) return;
+        function GuardedWebSocket(url, protocols) {
+          if (
+            protocols === 'vite-hmr' ||
+            protocols === 'vite-ping' ||
+            (Array.isArray(protocols) &&
+              (protocols.indexOf('vite-hmr') !== -1 || protocols.indexOf('vite-ping') !== -1))
+          ) {
+            var stub = new EventTarget();
+            stub.readyState = 1;
+            stub.OPEN = 1;
+            stub.CONNECTING = 0;
+            stub.CLOSING = 2;
+            stub.CLOSED = 3;
+            stub.url = String(url || '');
+            stub.protocol = String(protocols || 'vite-hmr');
+            stub. bufferedAmount = 0;
+            stub.extensions = '';
+            stub.binaryType = 'blob';
+            stub.send = function () {};
+            stub.close = function () {};
+            setTimeout(function () {
+              stub.dispatchEvent(new Event('open'));
+            }, 0);
+            return stub;
+          }
+          return protocols !== undefined ? new NativeWS(url, protocols) : new NativeWS(url);
+        }
+        GuardedWebSocket.prototype = NativeWS.prototype;
+        GuardedWebSocket.CONNECTING = NativeWS.CONNECTING;
+        GuardedWebSocket.OPEN = NativeWS.OPEN;
+        GuardedWebSocket.CLOSING = NativeWS.CLOSING;
+        GuardedWebSocket.CLOSED = NativeWS.CLOSED;
+        window.WebSocket = GuardedWebSocket;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

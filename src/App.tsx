@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import {
   UploadedFacultyDocument,
@@ -18,6 +18,7 @@ import {
 } from './types/assessment';
 import {
   COURSE_PRESETS,
+  CoursePreset,
   INITIAL_INGESTION_OUTPUT,
   INITIAL_BLUEPRINT_OUTPUT,
   INITIAL_GENERATED_QUESTIONS,
@@ -29,6 +30,7 @@ import { MarksBlueprintView } from './components/MarksBlueprintView';
 import { QuestionPaperView } from './components/QuestionPaperView';
 import { SyllabusAuditView } from './components/SyllabusAuditView';
 import { ColabFastApiBridgeView } from './components/ColabFastApiBridgeView';
+import { CreateSubjectModal } from './components/CreateSubjectModal';
 import {
   invokeIngestionAgent,
   invokeBlueprintAgent,
@@ -39,11 +41,28 @@ import {
 
 type ActiveTab = 'studio' | 'blueprint' | 'paper' | 'audit' | 'colab';
 
+const CUSTOM_SUBJECTS_STORAGE_KEY = 'syllabiq_custom_subjects_v1';
+
 export default function App() {
-  const defaultPreset = COURSE_PRESETS[0];
+  const [customCourses, setCustomCourses] = useState<CoursePreset[]>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_SUBJECTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    return [];
+  });
+
+  const allCourses: CoursePreset[] = [...COURSE_PRESETS, ...customCourses];
+  const defaultPreset = allCourses[0];
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('studio');
   const [selectedPresetId, setSelectedPresetId] = useState<string>(defaultPreset.id);
+  const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
 
   // Core Faculty Input State
   const [documents, setDocuments] = useState<UploadedFacultyDocument[]>(
@@ -84,6 +103,17 @@ export default function App() {
   );
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [colabTunnelUrl, setColabTunnelUrl] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CUSTOM_SUBJECTS_STORAGE_KEY,
+        JSON.stringify(customCourses)
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  }, [customCourses]);
 
   const [agentLogs, setAgentLogs] = useState<AgentExecutionLog[]>([
     {
@@ -142,7 +172,7 @@ export default function App() {
   };
 
   const handleSelectPreset = (presetId: string) => {
-    const found = COURSE_PRESETS.find((p) => p.id === presetId);
+    const found = allCourses.find((p) => p.id === presetId);
     if (!found) return;
     setSelectedPresetId(found.id);
     setDocuments(found.sampleDocuments);
@@ -153,7 +183,11 @@ export default function App() {
   };
 
   // Run Agent 1: Multimodal Ingestion
-  const runAgent1Ingestion = async (): Promise<IngestionAgentOutput> => {
+  const runAgent1Ingestion = async (
+    overrideDocs = documents,
+    overrideUnits = syllabusUnits,
+    overrideOutcomes = courseOutcomes
+  ): Promise<IngestionAgentOutput> => {
     setIsIngesting(true);
     setErrorBanner(null);
     const t0 = performance.now();
@@ -165,9 +199,9 @@ export default function App() {
     try {
       const data = await invokeIngestionAgent(
         {
-          documents,
-          syllabusUnits,
-          courseOutcomes,
+          documents: overrideDocs,
+          syllabusUnits: overrideUnits,
+          courseOutcomes: overrideOutcomes,
         },
         colabTunnelUrl
       );
@@ -177,7 +211,7 @@ export default function App() {
       updateAgentLog('INGESTION', {
         status: 'COMPLETED',
         durationMs: elapsed,
-        headline: `Extracted ${data.extractedConcepts?.length || 0} concept clusters from ${documents.length} files.`,
+        headline: `Extracted ${data.extractedConcepts?.length || 0} concept clusters from ${overrideDocs.length} files.`,
         details: [data.summary || 'Mapped concepts to Syllabus Units and Course Outcomes.'],
       });
       return data;
@@ -195,7 +229,10 @@ export default function App() {
 
   // Run Agent 2: Assessment Blueprint Architect
   const runAgent2Blueprint = async (
-    currentIngestion: IngestionAgentOutput = ingestionOutput
+    currentIngestion: IngestionAgentOutput = ingestionOutput,
+    overrideMarks = marksConfig,
+    overrideOutcomes = courseOutcomes,
+    overrideUnits = syllabusUnits
   ): Promise<BlueprintAgentOutput> => {
     setIsBuildingBlueprint(true);
     setErrorBanner(null);
@@ -209,9 +246,9 @@ export default function App() {
       const data = await invokeBlueprintAgent(
         {
           ingestionOutput: currentIngestion,
-          marksConfig,
-          courseOutcomes,
-          syllabusUnits,
+          marksConfig: overrideMarks,
+          courseOutcomes: overrideOutcomes,
+          syllabusUnits: overrideUnits,
         },
         colabTunnelUrl
       );
@@ -220,7 +257,7 @@ export default function App() {
       updateAgentLog('BLUEPRINT', {
         status: 'COMPLETED',
         durationMs: elapsed,
-        headline: `Constructed ${data.slots?.length || 0} blueprint slots (${data.totalAllocatedMarks || marksConfig.maximumMarks} Marks).`,
+        headline: `Constructed ${data.slots?.length || 0} blueprint slots (${data.totalAllocatedMarks || overrideMarks.maximumMarks} Marks).`,
         details: [data.blueprintSummary || 'Balanced across COs and Bloom’s levels.'],
       });
       return data;
@@ -239,7 +276,9 @@ export default function App() {
   // Run Agent 3: Question Paper Generator
   const runAgent3Generator = async (
     currentIngestion: IngestionAgentOutput = ingestionOutput,
-    currentBlueprint: BlueprintAgentOutput = blueprintOutput
+    currentBlueprint: BlueprintAgentOutput = blueprintOutput,
+    overrideDocs = documents,
+    overrideMarks = marksConfig
   ): Promise<GeneratedQuestion[]> => {
     setIsGeneratingPaper(true);
     setErrorBanner(null);
@@ -252,10 +291,10 @@ export default function App() {
     try {
       const generatedList = await invokeGeneratorAgent(
         {
-          documents,
+          documents: overrideDocs,
           ingestionOutput: currentIngestion,
           blueprintOutput: currentBlueprint,
-          marksConfig,
+          marksConfig: overrideMarks,
         },
         colabTunnelUrl
       );
@@ -284,7 +323,10 @@ export default function App() {
 
   // Run Agent 4: Curriculum & Learning Objectives Validator
   const runAgent4Validator = async (
-    currentQuestions: GeneratedQuestion[] = questions
+    currentQuestions: GeneratedQuestion[] = questions,
+    overrideUnits = syllabusUnits,
+    overrideOutcomes = courseOutcomes,
+    overrideMarks = marksConfig
   ): Promise<ValidationAgentOutput> => {
     setIsValidating(true);
     setErrorBanner(null);
@@ -298,9 +340,9 @@ export default function App() {
       const data = await invokeValidatorAgent(
         {
           questions: currentQuestions,
-          syllabusUnits,
-          courseOutcomes,
-          marksConfig,
+          syllabusUnits: overrideUnits,
+          courseOutcomes: overrideOutcomes,
+          marksConfig: overrideMarks,
         },
         colabTunnelUrl
       );
@@ -352,6 +394,68 @@ export default function App() {
     } finally {
       setIsRunningPipeline(false);
     }
+  };
+
+  // Create a brand new Subject (Course Kit)
+  const handleCreateSubject = async (
+    newPreset: CoursePreset,
+    runPipelineImmediately: boolean
+  ) => {
+    setCustomCourses((prev) => [...prev, newPreset]);
+    setSelectedPresetId(newPreset.id);
+    setDocuments(newPreset.sampleDocuments);
+    setCourseOutcomes(newPreset.courseOutcomes);
+    setSyllabusUnits(newPreset.syllabusUnits);
+    setMarksConfig(newPreset.marksConfig);
+    setIsCreateSubjectOpen(false);
+    setErrorBanner(null);
+
+    if (runPipelineImmediately) {
+      setIsRunningPipeline(true);
+      try {
+        const ing = await runAgent1Ingestion(
+          newPreset.sampleDocuments,
+          newPreset.syllabusUnits,
+          newPreset.courseOutcomes
+        );
+        const bp = await runAgent2Blueprint(
+          ing,
+          newPreset.marksConfig,
+          newPreset.courseOutcomes,
+          newPreset.syllabusUnits
+        );
+        const qs = await runAgent3Generator(
+          ing,
+          bp,
+          newPreset.sampleDocuments,
+          newPreset.marksConfig
+        );
+        await runAgent4Validator(
+          qs,
+          newPreset.syllabusUnits,
+          newPreset.courseOutcomes,
+          newPreset.marksConfig
+        );
+        setActiveTab('paper');
+      } catch {
+        // Error surfaced in banner
+      } finally {
+        setIsRunningPipeline(false);
+      }
+    } else {
+      setActiveTab('studio');
+    }
+  };
+
+  const handleDeleteCustomSubject = (presetId: string) => {
+    const remainingCustom = customCourses.filter((c) => c.id !== presetId);
+    setCustomCourses(remainingCustom);
+    const fallback = COURSE_PRESETS[0];
+    setSelectedPresetId(fallback.id);
+    setDocuments(fallback.sampleDocuments);
+    setCourseOutcomes(fallback.courseOutcomes);
+    setSyllabusUnits(fallback.syllabusUnits);
+    setMarksConfig(fallback.marksConfig);
   };
 
   const handleRunSingleAgent = async (
@@ -531,11 +635,14 @@ export default function App() {
 
       {/* Multi-Agent Orchestration Strip */}
       <MultiAgentPipelineBar
+        courses={allCourses}
         logs={agentLogs}
         isRunningPipeline={isRunningPipeline}
         activeStepIndex={null}
         selectedPresetId={selectedPresetId}
         onSelectPreset={handleSelectPreset}
+        onOpenCreateSubject={() => setIsCreateSubjectOpen(true)}
+        onDeleteSubject={handleDeleteCustomSubject}
         onRunFullPipeline={handleRunFullPipeline}
         onRunSingleAgent={handleRunSingleAgent}
         onNavigateTab={setActiveTab}
@@ -544,6 +651,14 @@ export default function App() {
         questionCount={questions.length}
         alignmentScore={validationOutput.overallAlignmentScore}
         flaggedCount={flaggedCount}
+      />
+
+      {/* Create New Subject Modal */}
+      <CreateSubjectModal
+        isOpen={isCreateSubjectOpen}
+        onClose={() => setIsCreateSubjectOpen(false)}
+        onCreateSubject={handleCreateSubject}
+        defaultInstitution={marksConfig.institutionName}
       />
 
       {/* Error Notification Banner */}
@@ -673,7 +788,7 @@ export default function App() {
               onClick={() => setActiveTab('colab')}
               className="hover:text-slate-900 transition-colors cursor-pointer"
             >
-              Download Google Colab (.ipynb)
+              GitHub Pages & Colab (.ipynb)
             </button>
           </div>
         </div>

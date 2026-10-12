@@ -946,6 +946,7 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
       'src/components/QuestionPaperView.tsx',
       'src/components/SyllabusAuditView.tsx',
       'src/components/ColabFastApiBridgeView.tsx',
+      'src/components/CreateSubjectModal.tsx',
     ];
 
     const treeItems: {
