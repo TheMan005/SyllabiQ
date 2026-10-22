@@ -13,6 +13,8 @@ import {
   ExternalLink,
   Rocket,
   ShieldCheck,
+  ArrowLeft,
+  Code,
 } from 'lucide-react';
 import {
   MarksDistributionConfig,
@@ -30,6 +32,7 @@ interface ColabFastApiBridgeViewProps {
   syllabusUnits: SyllabusUnit[];
   colabTunnelUrl: string;
   onUpdateColabTunnelUrl: (url: string) => void;
+  onBackToFaculty?: () => void;
 }
 
 interface PublishSuccessResult {
@@ -48,6 +51,7 @@ export const ColabFastApiBridgeView: React.FC<ColabFastApiBridgeViewProps> = ({
   syllabusUnits,
   colabTunnelUrl,
   onUpdateColabTunnelUrl,
+  onBackToFaculty,
 }) => {
   const [copied, setCopied] = useState(false);
   const [copiedDns, setCopiedDns] = useState(false);
@@ -201,17 +205,39 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
 
   return (
     <div className="space-y-8">
+      {/* Back to Faculty Workflow Breadcrumb */}
+      {onBackToFaculty && (
+        <div className="flex items-center justify-between pb-2">
+          <button
+            type="button"
+            onClick={onBackToFaculty}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-950 transition-colors cursor-pointer group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
+            <span>← Return to Faculty Question-Paper Dashboard</span>
+          </button>
+          <span className="text-[11px] font-mono text-slate-400">
+            Developer Mode Active
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <p className="text-xs font-semibold text-blue-900 tracking-tight">
-            05. GitHub Pages Deployment (syllabiq.com) & Google Colab FastAPI Runtime
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">
-            Publish to GitHub Pages, Custom Domain & Colab Notebook
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider bg-slate-900 text-slate-100 px-2 py-0.5 rounded font-semibold">
+              Developer Console
+            </span>
+            <p className="text-xs font-semibold text-blue-900 tracking-tight">
+              FastAPI Orchestrator, GitHub Pages & Colab Runtime
+            </p>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Developer Console & Deployment Hub
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Push this complete application to a new GitHub repository with automated GitHub Pages CI/CD and custom domain routing for <strong>syllabiq.com</strong>, or download the Google Colab <code className="font-mono-tabular">.ipynb</code> notebook.
+            Configure backend FastAPI endpoints, deploy the repository to GitHub Pages with custom domain routing for <strong>syllabiq.com</strong>, or export the Google Colab <code className="font-mono-tabular">.ipynb</code> notebook.
           </p>
         </div>
 
@@ -231,7 +257,7 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download Google Colab Notebook (.ipynb)</span>
+            <span>Download Colab Notebook (.ipynb)</span>
           </button>
         </div>
       </div>

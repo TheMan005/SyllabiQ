@@ -27,7 +27,7 @@ interface MultiAgentPipelineBarProps {
   onDeleteSubject?: (presetId: string) => void;
   onRunFullPipeline: () => void;
   onRunSingleAgent: (agentId: 'INGESTION' | 'BLUEPRINT' | 'GENERATOR' | 'VALIDATOR') => void;
-  onNavigateTab: (tab: 'studio' | 'blueprint' | 'paper' | 'audit' | 'colab') => void;
+  onNavigateTab: (tab: 'studio' | 'blueprint' | 'paper' | 'audit' | 'developer' | 'colab') => void;
   documentCount: number;
   totalMarks: number;
   questionCount: number;
