@@ -41,7 +41,6 @@ interface PublishSuccessResult {
   repoUrl: string;
   actionsUrl: string;
   ghPagesDefaultUrl: string;
-  customDomainUrl: string | null;
   filesPushed: number;
 }
 
@@ -54,7 +53,6 @@ export const ColabFastApiBridgeView: React.FC<ColabFastApiBridgeViewProps> = ({
   onBackToFaculty,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [copiedDns, setCopiedDns] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<{
     ok: boolean;
@@ -64,7 +62,6 @@ export const ColabFastApiBridgeView: React.FC<ColabFastApiBridgeViewProps> = ({
   // GitHub Repository & GitHub Pages Publisher State
   const [githubToken, setGithubToken] = useState('');
   const [repoName, setRepoName] = useState('syllabiq');
-  const [customDomain, setCustomDomain] = useState('syllabiq.com');
   const [isPrivateRepo, setIsPrivateRepo] = useState(false);
   const [isPublishingGh, setIsPublishingGh] = useState(false);
   const [publishResult, setPublishResult] = useState<PublishSuccessResult | null>(null);
@@ -115,21 +112,6 @@ export const ColabFastApiBridgeView: React.FC<ColabFastApiBridgeViewProps> = ({
     }
   };
 
-  const handleCopyDnsRecords = async () => {
-    const dnsText = `A     @    185.199.108.153
-A     @    185.199.109.153
-A     @    185.199.110.153
-A     @    185.199.111.153
-CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
-    try {
-      await navigator.clipboard.writeText(dnsText);
-      setCopiedDns(true);
-      setTimeout(() => setCopiedDns(false), 2000);
-    } catch {
-      // Fallback
-    }
-  };
-
   const handlePublishToGitHub = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPublishingGh(true);
@@ -143,7 +125,6 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
         body: JSON.stringify({
           githubToken,
           repoName: repoName.trim() || 'syllabiq',
-          customDomain: customDomain.trim() || 'syllabiq.com',
           isPrivate: isPrivateRepo,
         }),
       });
@@ -237,7 +218,7 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
             Developer Console & Deployment Hub
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Configure backend FastAPI endpoints, deploy the repository to GitHub Pages with custom domain routing for <strong>syllabiq.com</strong>, or export the Google Colab <code className="font-mono-tabular">.ipynb</code> notebook.
+            Configure backend FastAPI endpoints, deploy the repository directly to standard GitHub Pages, or export the Google Colab <code className="font-mono-tabular">.ipynb</code> multi-agent notebook.
           </p>
         </div>
 
@@ -262,7 +243,7 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
         </div>
       </div>
 
-      {/* SECTION 1: GITHUB REPOSITORY & GITHUB PAGES (SYLLABIQ.COM) DEPLOYMENT CENTER */}
+      {/* SECTION 1: GITHUB REPOSITORY & STANDARD GITHUB PAGES DEPLOYMENT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: 1-Click GitHub API Publisher (7 cols) */}
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 space-y-5">
@@ -270,10 +251,10 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
             <div>
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Rocket className="w-4 h-4 text-blue-900" />
-                <span>Push New Repository to GitHub & Activate GitHub Pages</span>
+                <span>Publish to Standard GitHub Pages</span>
               </h2>
               <p className="text-xs text-slate-600 mt-0.5">
-                Pre-configured with <code className="font-mono-tabular">.github/workflows/deploy.yml</code> and <code className="font-mono-tabular">public/CNAME</code> (<code className="font-mono-tabular">syllabiq.com</code>).
+                Automatically builds and hosts your app at <code className="font-mono-tabular">https://&lt;username&gt;.github.io/&lt;repo&gt;/</code>.
               </p>
             </div>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 whitespace-nowrap">
@@ -285,43 +266,28 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
           {/* Two Options Explanation */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-xs text-slate-700 space-y-1.5">
             <p className="font-semibold text-slate-900">
-              Two Ways to Push to Your GitHub Account:
+              Two Ways to Publish to Your GitHub:
             </p>
             <p>
-              <strong>Option A (AI Studio Toolbar):</strong> Click the <strong>GitHub icon</strong> in the top-right bar of Google AI Studio to export directly to a new repository. Because <code className="font-mono-tabular">.github/workflows/deploy.yml</code> and <code className="font-mono-tabular">public/CNAME</code> are already in this workspace, GitHub Actions will build and deploy your web app automatically.
+              <strong>Option A (AI Studio Toolbar):</strong> Click the <strong>GitHub icon</strong> in the top-right toolbar of Google AI Studio to export directly to a new repository. The pre-configured <code className="font-mono-tabular">.github/workflows/deploy.yml</code> workflow will automatically build and publish to GitHub Pages.
             </p>
             <p>
-              <strong>Option B (Direct 1-Click API Push Below):</strong> Enter a GitHub Personal Access Token (with <code className="font-mono-tabular">repo</code> and <code className="font-mono-tabular">workflow</code> scopes) below to create the repository, commit all 27 files, and enable GitHub Pages + <code className="font-mono-tabular">syllabiq.com</code> automatically.
+              <strong>Option B (Direct 1-Click API Push Below):</strong> Enter a GitHub Personal Access Token (with <code className="font-mono-tabular">repo</code> and <code className="font-mono-tabular">workflow</code> scopes) below to initialize the repository, commit all project files, and activate standard GitHub Pages automatically.
             </p>
           </div>
 
           <form onSubmit={handlePublishToGitHub} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  New GitHub Repository Name
-                </label>
-                <input
-                  type="text"
-                  value={repoName}
-                  onChange={(e) => setRepoName(e.target.value)}
-                  placeholder="syllabiq"
-                  className="w-full text-xs font-mono-tabular px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Custom Domain (CNAME)
-                </label>
-                <input
-                  type="text"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                  placeholder="syllabiq.com"
-                  className="w-full text-xs font-mono-tabular px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                New GitHub Repository Name
+              </label>
+              <input
+                type="text"
+                value={repoName}
+                onChange={(e) => setRepoName(e.target.value)}
+                placeholder="syllabiq"
+                className="w-full text-xs font-mono-tabular px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700"
+              />
             </div>
 
             <div>
@@ -347,7 +313,7 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
                   onChange={(e) => setIsPrivateRepo(e.target.checked)}
                   className="rounded border-slate-300 text-blue-900 focus:ring-blue-700"
                 />
-                <span>Create as Private Repository (Note: GitHub Pages on free accounts requires Public)</span>
+                <span>Create as Private Repository (Note: GitHub Pages on personal free accounts requires a Public repo)</span>
               </label>
 
               <button
@@ -425,106 +391,53 @@ CNAME www  ${ publishResult?.owner || '<your-github-username>' }.github.io`;
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
-                {publishResult.customDomainUrl && (
-                  <div>
-                    Custom Domain Configured:{' '}
-                    <span className="font-semibold text-slate-900">
-                      {publishResult.customDomainUrl}
-                    </span>{' '}
-                    (Point your DNS records on the right to complete activation)
-                  </div>
-                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Right: Custom Domain DNS Setup for syllabiq.com (5 cols) */}
+        {/* Right: Standard GitHub Pages Architecture & Overview (5 cols) */}
         <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div>
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-blue-900" />
-                <span>Custom Domain Setup (<code className="font-mono-tabular">syllabiq.com</code>)</span>
+                <span>Standard GitHub Pages Deployment</span>
               </h2>
               <p className="text-xs text-slate-600 mt-0.5">
-                Required DNS records at your domain registrar to point <code className="font-mono-tabular">syllabiq.com</code> to GitHub Pages.
+                No custom domains or DNS records required.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyDnsRecords}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md cursor-pointer whitespace-nowrap shrink-0"
-            >
-              {copiedDns ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Copied DNS</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Records</span>
-                </>
-              )}
-            </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs font-mono-tabular">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500 font-sans font-semibold">
-                  <th className="py-2 pr-2">Type</th>
-                  <th className="py-2 px-2">Host</th>
-                  <th className="py-2 pl-2">Value / Points To</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                <tr>
-                  <td className="py-2 pr-2 font-bold text-blue-900">A</td>
-                  <td className="py-2 px-2">@</td>
-                  <td className="py-2 pl-2">185.199.108.153</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2 font-bold text-blue-900">A</td>
-                  <td className="py-2 px-2">@</td>
-                  <td className="py-2 pl-2">185.199.109.153</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2 font-bold text-blue-900">A</td>
-                  <td className="py-2 px-2">@</td>
-                  <td className="py-2 pl-2">185.199.110.153</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2 font-bold text-blue-900">A</td>
-                  <td className="py-2 px-2">@</td>
-                  <td className="py-2 pl-2">185.199.111.153</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2 font-bold text-blue-900">CNAME</td>
-                  <td className="py-2 px-2">www</td>
-                  <td className="py-2 pl-2">
-                    {publishResult?.owner || '<your-github-username>'}.github.io
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1.5 text-xs text-slate-600">
-            <div className="flex items-center gap-1.5 font-semibold text-slate-900">
-              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>Included Static Web App Enhancements for GitHub Pages</span>
+          <div className="space-y-3 text-xs text-slate-700">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2">
+              <span className="font-semibold text-slate-900 block">Default Published URL:</span>
+              <p className="font-mono-tabular text-blue-900 bg-white border border-slate-200 p-2 rounded text-xs break-all">
+                https://{publishResult?.owner || '&lt;your-username&gt;'}.github.io/{repoName || 'syllabiq'}/
+              </p>
             </div>
-            <p className="leading-relaxed">
-              • <code className="font-mono-tabular">public/CNAME</code> is pre-populated with <code className="font-mono-tabular">syllabiq.com</code>.
-            </p>
-            <p className="leading-relaxed">
-              • <code className="font-mono-tabular">.github/workflows/deploy.yml</code> runs <code className="font-mono-tabular">vite build</code> and deploys to GitHub Pages automatically.
-            </p>
-            <p className="leading-relaxed">
-              • Client-side PPTX/PDF parser & multi-agent fallback ensures the web app runs smoothly on static GitHub Pages even when no external backend server is active.
-            </p>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>Pre-Configured GitHub Pages Stack:</span>
+              </div>
+              <ul className="space-y-1.5 text-slate-600 pl-1">
+                <li>
+                  • <strong>Automated CI/CD:</strong> <code className="font-mono-tabular">.github/workflows/deploy.yml</code> automatically builds on pushes to <code className="font-mono-tabular">main</code> and deploys the static bundle to the <code className="font-mono-tabular">gh-pages</code> branch.
+                </li>
+                <li>
+                  • <strong>Asset Path Compatibility:</strong> Relative asset base (<code className="font-mono-tabular">./</code>) is configured in Vite for proper subpath resolution on GitHub Pages.
+                </li>
+                <li>
+                  • <strong>SPA Fallback:</strong> <code className="font-mono-tabular">public/404.html</code> and <code className="font-mono-tabular">public/.nojekyll</code> ensure client-side routing works cleanly without 404 errors.
+                </li>
+                <li>
+                  • <strong>Offline & Static Mode:</strong> Client-side multimodal parsers and blueprint generators ensure the web app functions out-of-the-box on GitHub Pages.
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

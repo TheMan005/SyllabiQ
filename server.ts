@@ -849,13 +849,12 @@ app.post('/api/colab/verify-tunnel', async (req: Request, res: Response) => {
   }
 });
 
-// Publish repository to user's GitHub & configure GitHub Pages + Custom Domain (syllabiq.com)
+// Publish repository to user's GitHub & configure standard GitHub Pages
 app.post('/api/github/publish', async (req: Request, res: Response) => {
   try {
     const {
       githubToken,
       repoName = 'syllabiq',
-      customDomain = 'syllabiq.com',
       isPrivate = false,
     } = req.body;
 
@@ -896,7 +895,7 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
         name: repoName.trim(),
         description:
           'SyllabiQ — Multimodal Multi-Agent Question-Paper Generator & Curriculum Validator (React + FastAPI + Google Colab)',
-        homepage: customDomain ? `https://${customDomain.trim()}` : `https://${owner}.github.io/${repoName.trim()}`,
+        homepage: `https://${owner}.github.io/${repoName.trim()}/`,
         private: Boolean(isPrivate),
         auto_init: true,
       }),
@@ -929,7 +928,6 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
       'README.md',
       'server.ts',
       'backend/fastapi_main.py',
-      'public/CNAME',
       'public/.nojekyll',
       'public/404.html',
       '.github/workflows/deploy.yml',
@@ -959,10 +957,7 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
     for (const relPath of filesToSync) {
       try {
         const absPath = path.resolve(__dirname, relPath);
-        let content = await fs.readFile(absPath, 'utf8');
-        if (relPath === 'public/CNAME' && customDomain.trim()) {
-          content = `${customDomain.trim()}\n`;
-        }
+        const content = await fs.readFile(absPath, 'utf8');
         treeItems.push({
           path: relPath,
           mode: '100644',
@@ -1026,7 +1021,7 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
         method: 'POST',
         headers: ghHeaders,
         body: JSON.stringify({
-          message: `Deploy SyllabiQ Multi-Agent Web App & GitHub Pages (${customDomain || 'gh-pages'})`,
+          message: 'Deploy SyllabiQ Multi-Agent Web App to GitHub Pages',
           tree: treeData.sha,
           parents: [latestCommitSha],
         }),
@@ -1060,22 +1055,6 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
       }),
     }).catch(() => {});
 
-    // 9. Update GitHub Pages configuration with custom domain if provided
-    if (customDomain && customDomain.trim()) {
-      await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
-        method: 'PUT',
-        headers: ghHeaders,
-        body: JSON.stringify({
-          cname: customDomain.trim(),
-          build_type: 'workflow',
-          source: {
-            branch: branchName,
-            path: '/',
-          },
-        }),
-      }).catch(() => {});
-    }
-
     res.json({
       success: true,
       owner,
@@ -1083,7 +1062,6 @@ app.post('/api/github/publish', async (req: Request, res: Response) => {
       repoUrl: `https://github.com/${owner}/${repoName}`,
       actionsUrl: `https://github.com/${owner}/${repoName}/actions`,
       ghPagesDefaultUrl: `https://${owner}.github.io/${repoName}/`,
-      customDomainUrl: customDomain ? `https://${customDomain.trim()}` : null,
       filesPushed: treeItems.length,
     });
   } catch (err: any) {

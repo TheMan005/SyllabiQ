@@ -6,27 +6,14 @@ It ingests faculty course materials in **PDF, PPT/PPTX, JPEG, and PNG** formats,
 
 ---
 
-## Live Deployment on GitHub Pages (`syllabiq.com`)
+## Live Deployment on Standard GitHub Pages
 
-This repository is pre-configured for **GitHub Pages** with automated GitHub Actions CI/CD and custom domain routing for **`syllabiq.com`**:
+This repository is pre-configured for automated **GitHub Pages** deployment via GitHub Actions:
 
-- **`.github/workflows/deploy.yml`**: Automatically builds the React web application (`npm run build`) and deploys `./dist` to GitHub Pages on every push to `main`.
-- **`public/CNAME`**: Pre-configured with `syllabiq.com` so GitHub Pages binds your custom domain automatically.
-- **`public/404.html` & `public/.nojekyll`**: Ensures clean single-page application (SPA) routing and asset delivery on GitHub Pages.
-
-### Custom Domain DNS Setup (`syllabiq.com`)
-
-To point **`syllabiq.com`** to your GitHub Pages deployment, add the following DNS records at your domain registrar (e.g., Cloudflare, Namecheap, GoDaddy, Google Domains):
-
-| Type | Host / Name | Value / Target | TTL |
-| :--- | :--- | :--- | :--- |
-| `A` | `@` | `185.199.108.153` | Automatic / 3600 |
-| `A` | `@` | `185.199.109.153` | Automatic / 3600 |
-| `A` | `@` | `185.199.110.153` | Automatic / 3600 |
-| `A` | `@` | `185.199.111.153` | Automatic / 3600 |
-| `CNAME` | `www` | `<your-github-username>.github.io` | Automatic / 3600 |
-
-After DNS propagation, enable **Enforce HTTPS** under **Repository Settings → Pages → Custom domain (`syllabiq.com`)**.
+- **`.github/workflows/deploy.yml`**: Automatically builds the React web application (`npm run build`) and deploys `./dist` to the `gh-pages` branch on every push to `main` or `master`.
+- **Default Hosted URL**: `https://<your-github-username>.github.io/<repository-name>/`
+- **`public/404.html` & `public/.nojekyll`**: Ensures clean single-page application (SPA) routing, relative subpath asset resolution, and bypasses Jekyll processing on GitHub Pages.
+- **Client-Side Fallback Engine**: Enables full multimodal parsing and mock assessment generation directly in the browser if no remote backend is connected.
 
 ---
 
